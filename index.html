@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>네온 테트리스 - 레벨업 에디션</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #090a0f;
+            --bg-panel: rgba(20, 24, 38, 0.85);
+            --border-glow: rgba(0, 240, 255, 0.3);
+            --text-main: #f0f4f8;
+            --text-muted: #8b9bb4;
+            --accent-cyan: #00f0ff;
+            --accent-pink: #ff007f;
+            --accent-purple: #b026ff;
+            --accent-yellow: #ffe600;
+            --accent-green: #00ff66;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(176, 38, 255, 0.08), transparent 35%),
+                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.08), transparent 35%);
+            color: var(--text-main);
+            font-family: 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            padding: 10px;
+        }
+
+        /* 헤더 영역 */
+        header {
+            width: 100%;
+            max-width: 540px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 4px;
+        }
+
+        .game-title {
+            font-family: 'Orbitron', 'Noto Sans KR', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            color: var(--text-main);
+            border-radius: 10px;
+            padding: 7px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .icon-btn:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .icon-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 상단 HUD 영역 (왼쪽 상단: 다음 블록 / 중앙: 레벨 / 오른쪽 상단: 점수) */
+        .top-hud {
+            display: grid;
+            grid-template-columns: 112px 1fr 132px;
+            gap: 10px;
+            width: 100%;
+            max-width: 540px;
+            margin-bottom: 12px;
+            align-items: stretch;
+        }
+
+        .hud-card {
+            background: var(--bg-panel);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 14px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            transition: transform 0.2s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hud-card.top-left-next {
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .hud-card.top-right-score {
+            border-color: rgba(255, 230, 0, 0.3);
+            align-items: flex-end;
+            text-align: right;
+            padding-right: 14px;
+        }
+
+        .hud-card.highlight {
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 22px rgba(255, 230, 0, 0.35);
+            transform: scale(1.03);
+        }
+
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        #level-display {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+            font-size: 1.15rem;
+        }
+
+        .speed-badge {
+            font-size: 0.68rem;
+            color: var(--accent-green);
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        #score-display {
+            color: var(--accent-yellow);
+            font-size: 1.35rem;
+            text-shadow: 0 0 12px rgba(255, 230, 0, 0.35);
+        }
+
+        .sub-metrics {
+            display: flex;
+            gap: 8px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .sub-metrics strong {
+            color: var(--text-main);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .next-canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 88px;
+            height: 60px;
+            background: rgba(8, 10, 18, 0.65);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 레벨 진행도 바 */
+        .level-progress-wrap {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .level-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* 메인 게임 컨테이너 */
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 540px;
+        }
+
+        /* 캔버스 보드 영역 */
+        .board-container {
+            position: relative;
+            background: #0d101b;
+            border: 2px solid rgba(0, 240, 255, 0.4);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 
+                0 0 25px rgba(0, 240, 255, 0.15),
+                inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        canvas#board {
+            display: block;
+            border-radius: 8px;
+            background-color: #080a12;
+        }
+
+        /* 상시 콤보 배지 (보드 우측 상단 내부) */
+        .combo-status-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: linear-gradient(135deg, rgba(255, 0, 127, 0.9), rgba(255, 149, 0, 0.9));
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-family: 'Orbitron', 'Noto Sans KR', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 800;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.65);
+            pointer-events: none;
+            z-index: 12;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
+        }
+
+        .combo-status-badge.hidden {
+            opacity: 0;
+            transform: scale(0.7);
+        }
+
+        /* 콤보 플로팅 팝업 알림 */
+        .combo-popup {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            background: linear-gradient(135deg, rgba(255, 0, 127, 0.96), rgba(255, 204, 0, 0.96));
+            color: #090a0f;
+            padding: 10px 20px;
+            border-radius: 14px;
+            font-weight: 800;
+            text-align: center;
+            box-shadow: 0 0 28px rgba(255, 0, 127, 0.85);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 16;
+            white-space: nowrap;
+        }
+
+        .combo-popup .combo-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.15rem;
+            color: #fff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+        }
+
+        .combo-popup .combo-bonus {
+            font-size: 0.85rem;
+            color: #fff;
+            margin-top: 2px;
+        }
+
+        .combo-popup.animate {
+            animation: comboPop 1.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes comboPop {
+            0% { opacity: 0; transform: translate(-50%, -25%) scale(0.5); }
+            18% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+            32% { transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -65%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -85%) scale(0.9); }
+        }
+
+        /* 레벨업 플로팅 알림 애니메이션 */
+        .level-up-banner {
+            position: absolute;
+            top: 34%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.95), rgba(176, 38, 255, 0.95));
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 15;
+            white-space: nowrap;
+        }
+
+        .level-up-banner.animate {
+            animation: levelUpPop 1.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes levelUpPop {
+            0% { opacity: 0; transform: translate(-50%, -30%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            35% { transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -55%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -75%) scale(0.9); }
+        }
+
+        /* 키보드 단축키 바 (데스크톱용 하단 한 줄) */
+        .controls-guide {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .key-badge {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            margin-left: 3px;
+        }
+
+        /* 모달 오버레이 (시작, 일시정지, 게임오버) */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 10, 15, 0.88);
+            backdrop-filter: blur(6px);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            z-index: 20;
+            transition: opacity 0.25s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay-title {
+            font-size: 1.65rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #fff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overlay-title.danger {
+            background: linear-gradient(90deg, #ff4d4d, var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overlay-desc {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.55;
+        }
+
+        .final-stats {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 18px;
+            width: 100%;
+            margin-bottom: 18px;
+        }
+
+        .final-stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 0.9rem;
+        }
+
+        .final-stat-row span:last-child {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            color: var(--accent-yellow);
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--accent-cyan), #0088ff);
+            color: #050811;
+            border: none;
+            border-radius: 12px;
+            padding: 13px 26px;
+            font-size: 0.98rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+            transition: all 0.2s ease;
+            width: 100%;
+            max-width: 190px;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 28px rgba(0, 240, 255, 0.7);
+        }
+
+        .primary-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 모바일 & 터치/마우스 컨트롤 패드 */
+        .touch-controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 420px;
+            margin-top: 12px;
+        }
+
+        .ctrl-btn {
+            background: linear-gradient(180deg, rgba(35, 42, 66, 0.9), rgba(20, 24, 38, 0.95));
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            border-radius: 14px;
+            color: var(--text-main);
+            padding: 12px 6px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.1s ease;
+        }
+
+        .ctrl-btn span.sub-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .ctrl-btn:active, .ctrl-btn.pressed {
+            transform: scale(0.94);
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .ctrl-btn.drop-btn {
+            grid-column: span 4;
+            background: linear-gradient(135deg, rgba(176, 38, 255, 0.35), rgba(0, 240, 255, 0.25));
+            border-color: rgba(176, 38, 255, 0.5);
+            flex-direction: row;
+            padding: 11px;
+        }
+
+        /* 반응형 모바일 최적화 */
+        @media (max-width: 540px) {
+            .game-title {
+                font-size: 1.15rem;
+            }
+            .top-hud {
+                grid-template-columns: 96px 1fr 116px;
+                gap: 6px;
+            }
+            .hud-card {
+                padding: 8px;
+            }
+            .hud-card.top-right-score {
+                padding-right: 10px;
+            }
+            #level-display {
+                font-size: 0.98rem;
+            }
+            #score-display {
+                font-size: 1.12rem;
+            }
+            .next-canvas-wrapper {
+                width: 76px;
+                height: 52px;
+            }
+            .controls-guide {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 상단 헤더 -->
+    <header>
+        <div class="game-title">NEON TETRIS</div>
+        <div class="header-controls">
+            <button id="sound-toggle-btn" class="icon-btn" title="효과음 켜기/끄기">
+                <span id="sound-icon">🔊</span>
+                <span id="sound-text">효과음</span>
+            </button>
+            <button id="pause-toggle-btn" class="icon-btn" title="일시정지 (P)">
+                <span>⏸️</span>
+                <span>일시정지</span>
+            </button>
+            <button id="header-restart-btn" class="icon-btn" title="새 게임 시작">
+                <span>🔄</span>
+                <span>재시작</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 상단 HUD: 왼쪽 상단(다음 블록) / 중앙(1~20 레벨) / 오른쪽 상단(점수) -->
+    <section class="top-hud" aria-label="게임 상태 표시줄">
+        <!-- 3. 왼쪽 상단: 다음번에 나올 테트리스 -->
+        <div class="hud-card top-left-next" id="next-card">
+            <div class="stat-label">다음 블록 (NEXT)</div>
+            <div class="next-canvas-wrapper">
+                <canvas id="next-piece" width="84" height="56"></canvas>
+            </div>
+        </div>
+
+        <!-- 1 & 2. 중앙 상단: 레벨 (1 ~ 20단계) & 속도 표시 -->
+        <div class="hud-card" id="level-card">
+            <div class="stat-label">레벨 (LEVEL)</div>
+            <div class="stat-value" id="level-display">LV. 1 / 20</div>
+            <div class="speed-badge" id="speed-display">속도: 1.0x</div>
+            <div class="level-progress-wrap" title="다음 레벨까지 남은 줄 (5줄마다 레벨업)">
+                <div class="level-progress-bar" id="level-progress"></div>
+            </div>
+        </div>
+
+        <!-- 4. 오른쪽 상단: 점수 표시 -->
+        <div class="hud-card top-right-score" id="score-card">
+            <div class="stat-label">점수 (SCORE)</div>
+            <div class="stat-value" id="score-display">0</div>
+            <div class="sub-metrics">
+                <span>최고 <strong id="highscore-display">0</strong></span>
+                <span>줄 <strong id="lines-display">0</strong></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 게임 보드 -->
+    <main class="game-wrapper">
+        <div class="board-container">
+            <canvas id="board" width="260" height="520"></canvas>
+
+            <!-- 연속 콤보 상태 배지 -->
+            <div id="combo-badge" class="combo-status-badge hidden">
+                🔥 2 COMBO (x1.5)
+            </div>
+
+            <!-- 콤보 점수 곱하기 플로팅 팝업 -->
+            <div id="combo-popup" class="combo-popup">
+                <div class="combo-title" id="combo-popup-title">2 COMBO! x1.5</div>
+                <div class="combo-bonus" id="combo-popup-bonus">+300 PTS</div>
+            </div>
+
+            <!-- 레벨업 알림 배너 -->
+            <div id="level-up-banner" class="level-up-banner">
+                LEVEL UP! 🚀<br>
+                <span id="level-up-sub" style="font-size: 0.82rem; font-weight: 600;">낙하 속도가 빨라집니다!</span>
+            </div>
+
+            <!-- 게임 시작 오버레이 -->
+            <div id="start-overlay" class="overlay">
+                <div class="overlay-title">네온 테트리스</div>
+                <p class="overlay-desc">
+                    • <strong>1단계 ~ 20단계</strong>까지 레벨업 속도 도전!<br>
+                    • 연속으로 줄을 깨면 <strong>콤보 배율(x1.5, x2.0...)</strong> 적용!
+                </p>
+                <button id="start-btn" class="primary-btn">게임 시작</button>
+            </div>
+
+            <!-- 일시정지 오버레이 -->
+            <div id="pause-overlay" class="overlay hidden">
+                <div class="overlay-title">일시정지</div>
+                <p class="overlay-desc">잠시 휴식 중입니다.<br>계속하려면 아래 버튼을 누르세요.</p>
+                <button id="resume-btn" class="primary-btn">계속하기</button>
+            </div>
+
+            <!-- 게임 오버 오버레이 -->
+            <div id="gameover-overlay" class="overlay hidden">
+                <div class="overlay-title danger">게임 오버</div>
+                <div class="final-stats">
+                    <div class="final-stat-row">
+                        <span>도달 레벨</span>
+                        <span id="final-level">LV. 1</span>
+                    </div>
+                    <div class="final-stat-row">
+                        <span>최종 점수</span>
+                        <span id="final-score">0</span>
+                    </div>
+                    <div class="final-stat-row">
+                        <span>최대 연속 콤보</span>
+                        <span id="final-combo">0 COMBO</span>
+                    </div>
+                    <div class="final-stat-row">
+                        <span>제거한 줄</span>
+                        <span id="final-lines">0</span>
+                    </div>
+                </div>
+                <button id="restart-btn" class="primary-btn">다시 하기</button>
+            </div>
+        </div>
+
+        <!-- 키보드 단축키 안내 -->
+        <div class="controls-guide">
+            <span>이동<span class="key-badge">← →</span></span>
+            <span>회전<span class="key-badge">↑</span></span>
+            <span>빠른 낙하<span class="key-badge">↓</span></span>
+            <span>즉시 낙하<span class="key-badge">Space</span></span>
+            <span>일시정지<span class="key-badge">P</span></span>
+        </div>
+    </main>
+
+    <!-- 하단 터치 / 마우스 클릭 컨트롤 -->
+    <section class="touch-controls" aria-label="게임 조작 버튼">
+        <button class="ctrl-btn" id="btn-left" aria-label="왼쪽 이동">
+            <span>◀</span>
+            <span class="sub-label">왼쪽</span>
+        </button>
+        <button class="ctrl-btn" id="btn-down" aria-label="아래로 내리기">
+            <span>▼</span>
+            <span class="sub-label">소프트 드롭</span>
+        </button>
+        <button class="ctrl-btn" id="btn-right" aria-label="오른쪽 이동">
+            <span>▶</span>
+            <span class="sub-label">오른쪽</span>
+        </button>
+        <button class="ctrl-btn" id="btn-rotate" aria-label="블록 회전">
+            <span>↻</span>
+            <span class="sub-label">회전</span>
+        </button>
+        <button class="ctrl-btn drop-btn" id="btn-drop" aria-label="하드 드롭">
+            <span>⚡ 즉시 낙하 (SPACE)</span>
+        </button>
+    </section>
+
+    <script>
+        /**
+         * Web Audio API 기반 신디사이저 효과음 매니저
+         * 외부 사운드 파일 없이 브라우저 내장 오디오로 레트로 아케이드 사운드 구현
+         */
+        class SoundManager {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                return this.muted;
+            }
+
+            playTone(freq, type, duration, vol = 0.1, slideFreq = null) {
+                if (this.muted) return;
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    if (slideFreq) {
+                        osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                    }
+
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {
+                    // 오디오 컨텍스트 정책 예외 무시
+                }
+            }
+
+            move() {
+                this.playTone(260, 'triangle', 0.05, 0.06);
+            }
+
+            rotate() {
+                this.playTone(420, 'sine', 0.08, 0.08, 580);
+            }
+
+            softDrop() {
+                this.playTone(180, 'sine', 0.04, 0.05);
+            }
+
+            hardDrop() {
+                this.playTone(150, 'sawtooth', 0.12, 0.1, 60);
+            }
+
+            lock() {
+                this.playTone(120, 'triangle', 0.08, 0.08);
+            }
+
+            lineClear(count, combo = 1) {
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                // 콤보가 높을수록 피치를 조금씩 높여 쾌감 극대화
+                const pitchBoost = Math.min(1.5, 1 + (combo - 1) * 0.08);
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => {
+                        this.playTone((notes[i] || 1046.50) * pitchBoost, 'square', 0.15, 0.08);
+                    }, i * 60);
+                }
+            }
+
+            levelUp() {
+                const melody = [440, 554.37, 659.25, 880];
+                melody.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'triangle', 0.18, 0.12);
+                    }, idx * 85);
+                });
+            }
+
+            gameOver() {
+                const melody = [330, 293.66, 261.63, 196];
+                melody.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'sawtooth', 0.25, 0.1);
+                    }, idx * 140);
+                });
+            }
+        }
+
+        const sound = new SoundManager();
+
+        /**
+         * 게임 상수 및 테트로미노 정의
+         */
+        const COLS = 10;
+        const ROWS = 20;
+        const MAX_LEVEL = 20;        // 최대 20단계 레벨
+        const LINES_PER_LEVEL = 5;   // 5줄 제거할 때마다 레벨 1 증가
+
+        // 7가지 표준 테트로미노 색상 (네온 테마)
+        const COLORS = {
+            I: '#00f0ff', // 시안
+            J: '#3b82f6', // 블루
+            L: '#ff9500', // 오렌지
+            O: '#ffe600', // 옐로우
+            S: '#00ff66', // 네온 그린
+            T: '#b026ff', // 퍼플
+            Z: '#ff0055'  // 네온 핑크/레드
+        };
+
+        // 7가지 표준 테트로미노 모양 행렬
+        const SHAPES = {
+            I: [
+                [0, 0, 0, 0],
+                [1, 1, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0]
+            ],
+            J: [
+                [1, 0, 0],
+                [1, 1, 1],
+                [0, 0, 0]
+            ],
+            L: [
+                [0, 0, 1],
+                [1, 1, 1],
+                [0, 0, 0]
+            ],
+            O: [
+                [1, 1],
+                [1, 1]
+            ],
+            S: [
+                [0, 1, 1],
+                [1, 1, 0],
+                [0, 0, 0]
+            ],
+            T: [
+                [0, 1, 0],
+                [1, 1, 1],
+                [0, 0, 0]
+            ],
+            Z: [
+                [1, 1, 0],
+                [0, 1, 1],
+                [0, 0, 0]
+            ]
+        };
+
+        /**
+         * DOM 요소 및 캔버스 초기화
+         */
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next-piece');
+        const nextCtx = nextCanvas.getContext('2d');
+
+        const levelDisplay = document.getElementById('level-display');
+        const speedDisplay = document.getElementById('speed-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const highscoreDisplay = document.getElementById('highscore-display');
+        const linesDisplay = document.getElementById('lines-display');
+        const levelProgress = document.getElementById('level-progress');
+        const levelCard = document.getElementById('level-card');
+        const scoreCard = document.getElementById('score-card');
+        const levelUpBanner = document.getElementById('level-up-banner');
+        const levelUpSub = document.getElementById('level-up-sub');
+        const comboBadge = document.getElementById('combo-badge');
+        const comboPopup = document.getElementById('combo-popup');
+        const comboPopupTitle = document.getElementById('combo-popup-title');
+        const comboPopupBonus = document.getElementById('combo-popup-bonus');
+
+        const startOverlay = document.getElementById('start-overlay');
+        const pauseOverlay = document.getElementById('pause-overlay');
+        const gameoverOverlay = document.getElementById('gameover-overlay');
+
+        // 최고 점수 로컬 스토리지 불러오기
+        let highScore = 0;
+        try {
+            highScore = parseInt(localStorage.getItem('neon_tetris_highscore') || '0', 10);
+            highscoreDisplay.textContent = highScore.toLocaleString();
+        } catch (e) {}
+
+        // 반응형 캔버스 크기 계산
+        let blockSize = 25;
+        function resizeCanvas() {
+            const maxHeight = Math.min(window.innerHeight * 0.56, 500);
+            blockSize = Math.max(17, Math.floor(maxHeight / ROWS));
+            canvas.width = COLS * blockSize;
+            canvas.height = ROWS * blockSize;
+            if (gameState.board) draw();
+        }
+
+        /**
+         * 게임 상태 객체
+         */
+        const gameState = {
+            board: [],
+            currentPiece: null,
+            nextPiece: null,
+            bag: [],
+            score: 0,
+            lines: 0,
+            level: 1,
+            combo: 0,           // 연속 줄 제거 콤보 카운트
+            maxCombo: 0,        // 이번 판 최고 연속 콤보
+            dropInterval: 950,
+            lastDropTime: 0,
+            isPlaying: false,
+            isPaused: false,
+            isGameOver: false,
+            flashRows: [],      // 줄 제거 시 반짝임 애니메이션용
+            animationId: null
+        };
+
+        // 7-Bag 랜덤 생성기 (모든 블록이 공정하게 순환 출현)
+        function getNextFromBag() {
+            if (gameState.bag.length === 0) {
+                const types = Object.keys(SHAPES);
+                for (let i = types.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [types[i], types[j]] = [types[j], types[i]];
+                }
+                gameState.bag = types;
+            }
+            const type = gameState.bag.pop();
+            const shape = SHAPES[type].map(row => [...row]);
+            return {
+                type,
+                shape,
+                color: COLORS[type],
+                x: Math.floor(COLS / 2) - Math.ceil(shape[0].length / 2),
+                y: 0
+            };
+        }
+
+        // 빈 게임 보드 생성
+        function createEmptyBoard() {
+            return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        }
+
+        /**
+         * 레벨(1~20)에 따른 낙하 속도(ms) 계산
+         * 레벨 1: 950ms 시작 -> 레벨 20: 90ms까지 점진적으로 가속
+         */
+        function calculateDropInterval(level) {
+            const clampedLevel = Math.min(MAX_LEVEL, Math.max(1, level));
+            // 1레벨(950ms)에서 20레벨(90ms)까지 부드럽게 가속
+            const progress = (clampedLevel - 1) / (MAX_LEVEL - 1);
+            return Math.round(950 * Math.pow(90 / 950, progress));
+        }
+
+        // UI 점수/레벨/콤보/진행도 업데이트
+        function updateUI() {
+            const isMax = gameState.level >= MAX_LEVEL;
+            levelDisplay.textContent = isMax
+                ? `LV. ${MAX_LEVEL} (MAX)`
+                : `LV. ${gameState.level} / ${MAX_LEVEL}`;
+
+            // 1레벨(950ms) 기준 상대 속도 배율 표시
+            const speedMultiplier = (950 / gameState.dropInterval).toFixed(1);
+            speedDisplay.textContent = `낙하 속도: ${speedMultiplier}x`;
+
+            scoreDisplay.textContent = gameState.score.toLocaleString();
+            linesDisplay.textContent = gameState.lines;
+
+            if (gameState.score > highScore) {
+                highScore = gameState.score;
+                highscoreDisplay.textContent = highScore.toLocaleString();
+                try {
+                    localStorage.setItem('neon_tetris_highscore', String(highScore));
+                } catch (e) {}
+            }
+
+            if (isMax) {
+                levelProgress.style.width = '100%';
+            } else {
+                const currentLevelLines = gameState.lines % LINES_PER_LEVEL;
+                const progressPercent = (currentLevelLines / LINES_PER_LEVEL) * 100;
+                levelProgress.style.width = `${progressPercent}%`;
+            }
+
+            // 연속 콤보 배지 업데이트 (2연속 이상일 때 활성화 표시)
+            if (gameState.combo >= 2) {
+                const multiplier = getComboMultiplier(gameState.combo);
+                comboBadge.textContent = `🔥 ${gameState.combo} COMBO (x${multiplier.toFixed(1)})`;
+                comboBadge.classList.remove('hidden');
+            } else {
+                comboBadge.classList.add('hidden');
+            }
+        }
+
+        // 연속 콤보 점수 배율 계산 (1연속: 1.0x, 2연속: 1.5x, 3연속: 2.0x, 4연속: 2.5x ...)
+        function getComboMultiplier(comboCount) {
+            if (comboCount <= 1) return 1.0;
+            return 1 + (comboCount - 1) * 0.5;
+        }
+
+        // 콤보 점수 곱하기 시각 효과 트리거
+        function triggerComboPopup(comboCount, multiplier, earnedPoints) {
+            scoreCard.classList.add('highlight');
+            comboPopupTitle.textContent = `${comboCount} COMBO! x${multiplier.toFixed(1)}`;
+            comboPopupBonus.textContent = `+${earnedPoints.toLocaleString()} 점!`;
+
+            comboPopup.classList.remove('animate');
+            void comboPopup.offsetWidth;
+            comboPopup.classList.add('animate');
+
+            setTimeout(() => {
+                scoreCard.classList.remove('highlight');
+            }, 900);
+        }
+
+        // 레벨업 시각 효과 트리거
+        function triggerLevelUpEffect() {
+            sound.levelUp();
+            levelCard.classList.add('highlight');
+            levelUpSub.textContent = gameState.level >= MAX_LEVEL
+                ? '최고 레벨(20단계) 도달! ⚡'
+                : `LV.${gameState.level} 달성! 속도가 빨라집니다!`;
+
+            levelUpBanner.classList.remove('animate');
+            void levelUpBanner.offsetWidth; // 리플로우 강제하여 애니메이션 재실행
+            levelUpBanner.classList.add('animate');
+
+            setTimeout(() => {
+                levelCard.classList.remove('highlight');
+            }, 1200);
+        }
+
+        // 충돌 감지
+        function isValidMove(piece, offsetX = 0, offsetY = 0, newShape = piece.shape) {
+            for (let r = 0; r < newShape.length; r++) {
+                for (let c = 0; c < newShape[r].length; c++) {
+                    if (!newShape[r][c]) continue;
+                    const newX = piece.x + c + offsetX;
+                    const newY = piece.y + r + offsetY;
+
+                    if (newX < 0 || newX >= COLS || newY >= ROWS) {
+                        return false;
+                    }
+                    if (newY >= 0 && gameState.board[newY][newX]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 고스트 블록(착지 예상 위치 Y좌표) 계산
+        function getGhostY() {
+            let ghostY = gameState.currentPiece.y;
+            while (isValidMove(gameState.currentPiece, 0, ghostY - gameState.currentPiece.y + 1)) {
+                ghostY++;
+            }
+            return ghostY;
+        }
+
+        // 블록 회전 (시계 방향 90도 + Wall Kick 보정)
+        function rotatePiece() {
+            if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+            const p = gameState.currentPiece;
+            const N = p.shape.length;
+            const rotated = Array.from({ length: N }, (_, r) =>
+                Array.from({ length: N }, (_, c) => p.shape[N - 1 - c][r])
+            );
+
+            // 벽 킥 오프셋 테스트 (제자리, 좌1, 우1, 좌2, 우2)
+            const kicks = [0, -1, 1, -2, 2];
+            for (const kick of kicks) {
+                if (isValidMove(p, kick, 0, rotated)) {
+                    p.x += kick;
+                    p.shape = rotated;
+                    sound.rotate();
+                    draw();
+                    return;
+                }
+            }
+        }
+
+        // 블록 좌우 이동
+        function moveHorizontal(dir) {
+            if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+            if (isValidMove(gameState.currentPiece, dir, 0)) {
+                gameState.currentPiece.x += dir;
+                sound.move();
+                draw();
+            }
+        }
+
+        // 블록 한 칸 아래로 이동 (소프트 드롭)
+        function moveDown(isManual = false) {
+            if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+            if (isValidMove(gameState.currentPiece, 0, 1)) {
+                gameState.currentPiece.y++;
+                if (isManual) {
+                    gameState.score += 1;
+                    sound.softDrop();
+                    updateUI();
+                }
+                gameState.lastDropTime = performance.now();
+                draw();
+            } else {
+                lockPiece();
+            }
+        }
+
+        // 하드 드롭 (즉시 바닥으로 낙하)
+        function hardDrop() {
+            if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+            const ghostY = getGhostY();
+            const dropDistance = ghostY - gameState.currentPiece.y;
+            gameState.score += dropDistance * 2;
+            gameState.currentPiece.y = ghostY;
+            sound.hardDrop();
+            updateUI();
+            lockPiece();
+        }
+
+        // 현재 블록을 보드에 고정
+        function lockPiece() {
+            const p = gameState.currentPiece;
+            for (let r = 0; r < p.shape.length; r++) {
+                for (let c = 0; c < p.shape[r].length; c++) {
+                    if (p.shape[r][c]) {
+                        const boardY = p.y + r;
+                        const boardX = p.x + c;
+                        if (boardY < 0) {
+                            endGame();
+                            return;
+                        }
+                        gameState.board[boardY][boardX] = p.color;
+                    }
+                }
+            }
+            sound.lock();
+            clearCompletedLines();
+            spawnNextPiece();
+        }
+
+        // 완성된 줄 확인 및 제거 (연속 콤보 배율 적용)
+        function clearCompletedLines() {
+            const completedRows = [];
+            for (let r = 0; r < ROWS; r++) {
+                if (gameState.board[r].every(cell => cell !== null)) {
+                    completedRows.push(r);
+                }
+            }
+
+            if (completedRows.length > 0) {
+                // 연속 줄 제거 성공 -> 콤보 증가
+                gameState.combo += 1;
+                if (gameState.combo > gameState.maxCombo) {
+                    gameState.maxCombo = gameState.combo;
+                }
+
+                // 시각적 반짝임 이펙트 등록
+                gameState.flashRows = [...completedRows];
+                setTimeout(() => {
+                    gameState.flashRows = [];
+                }, 180);
+
+                // 위에서부터 줄 제거 후 상단에 빈 줄 추가
+                completedRows.forEach(rowIndex => {
+                    gameState.board.splice(rowIndex, 1);
+                    gameState.board.unshift(Array(COLS).fill(null));
+                });
+
+                const count = completedRows.length;
+                const lineScores = [0, 100, 300, 500, 800];
+                const baseScore = lineScores[count] * gameState.level;
+                const multiplier = getComboMultiplier(gameState.combo);
+                const totalEarned = Math.round(baseScore * multiplier);
+
+                gameState.score += totalEarned;
+                gameState.lines += count;
+
+                sound.lineClear(count, gameState.combo);
+
+                // 2연속 이상 콤보 달성 시 콤보 곱하기 팝업 표시
+                if (gameState.combo >= 2) {
+                    triggerComboPopup(gameState.combo, multiplier, totalEarned);
+                }
+
+                // 레벨업 체크 (최대 20단계까지)
+                const calculatedLevel = Math.floor(gameState.lines / LINES_PER_LEVEL) + 1;
+                const newLevel = Math.min(MAX_LEVEL, calculatedLevel);
+                if (newLevel > gameState.level) {
+                    gameState.level = newLevel;
+                    gameState.dropInterval = calculateDropInterval(gameState.level);
+                    triggerLevelUpEffect();
+                }
+
+                updateUI();
+            } else {
+                // 줄을 깨지 못하고 블록이 착지하면 연속 콤보 초기화
+                if (gameState.combo > 0) {
+                    gameState.combo = 0;
+                    updateUI();
+                }
+            }
+        }
+
+        // 다음 블록 소환
+        function spawnNextPiece() {
+            gameState.currentPiece = gameState.nextPiece || getNextFromBag();
+            gameState.nextPiece = getNextFromBag();
+            drawNextPiece();
+
+            if (!isValidMove(gameState.currentPiece, 0, 0)) {
+                endGame();
+            }
+        }
+
+        /**
+         * 렌더링 함수들
+         */
+        function drawBlock(context, x, y, size, color, isGhost = false) {
+            const px = x * size;
+            const py = y * size;
+            const pad = 1.5;
+
+            if (isGhost) {
+                context.save();
+                context.strokeStyle = color;
+                context.globalAlpha = 0.35;
+                context.lineWidth = 2;
+                context.beginPath();
+                context.roundRect(px + 2, py + 2, size - 4, size - 4, 4);
+                context.stroke();
+                context.fillStyle = color;
+                context.globalAlpha = 0.08;
+                context.fill();
+                context.restore();
+                return;
+            }
+
+            context.save();
+            // 네온 글로우
+            context.shadowColor = color;
+            context.shadowBlur = 8;
+
+            // 메인 블록 채우기
+            context.fillStyle = color;
+            context.beginPath();
+            context.roundRect(px + pad, py + pad, size - pad * 2, size - pad * 2, 4);
+            context.fill();
+
+            // 내부 하이라이트 (입체감)
+            context.shadowBlur = 0;
+            context.fillStyle = 'rgba(255, 255, 255, 0.28)';
+            context.beginPath();
+            context.roundRect(px + pad + 2, py + pad + 2, size - (pad + 2) * 2, (size - pad * 2) * 0.35, 2);
+            context.fill();
+            context.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 배경 그리드 선 그리기
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
+            ctx.lineWidth = 1;
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * blockSize);
+                ctx.lineTo(canvas.width, r * blockSize);
+                ctx.stroke();
+            }
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * blockSize, 0);
+                ctx.lineTo(c * blockSize, canvas.height);
+                ctx.stroke();
+            }
+
+            // 보드에 쌓인 블록 그리기
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (gameState.board[r][c]) {
+                        drawBlock(ctx, c, r, blockSize, gameState.board[r][c]);
+                    }
+                }
+            }
+
+            // 줄 제거 플래시 이펙트
+            if (gameState.flashRows.length > 0) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+                gameState.flashRows.forEach(r => {
+                    ctx.fillRect(0, r * blockSize, canvas.width, blockSize);
+                });
+            }
+
+            // 현재 떨어지는 블록 & 고스트 블록 그리기
+            if (gameState.currentPiece && !gameState.isGameOver) {
+                const p = gameState.currentPiece;
+                const ghostY = getGhostY();
+
+                // 고스트 블록
+                for (let r = 0; r < p.shape.length; r++) {
+                    for (let c = 0; c < p.shape[r].length; c++) {
+                        if (p.shape[r][c]) {
+                            drawBlock(ctx, p.x + c, ghostY + r, blockSize, p.color, true);
+                        }
+                    }
+                }
+
+                // 실제 블록
+                for (let r = 0; r < p.shape.length; r++) {
+                    for (let c = 0; c < p.shape[r].length; c++) {
+                        if (p.shape[r][c] && p.y + r >= 0) {
+                            drawBlock(ctx, p.x + c, p.y + r, blockSize, p.color, false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 다음 블록 미리보기 캔버스 그리기 (왼쪽 상단 NEXT 영역)
+        function drawNextPiece() {
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            const p = gameState.nextPiece;
+            if (!p) return;
+
+            const previewSize = 15;
+            // 실제 블록이 차지하는 바운딩 박스 계산하여 중앙 정렬
+            let minR = 4, maxR = 0, minC = 4, maxC = 0;
+            for (let r = 0; r < p.shape.length; r++) {
+                for (let c = 0; c < p.shape[r].length; c++) {
+                    if (p.shape[r][c]) {
+                        minR = Math.min(minR, r);
+                        maxR = Math.max(maxR, r);
+                        minC = Math.min(minC, c);
+                        maxC = Math.max(maxC, c);
+                    }
+                }
+            }
+            const pieceW = (maxC - minC + 1) * previewSize;
+            const pieceH = (maxR - minR + 1) * previewSize;
+            const offsetX = (nextCanvas.width - pieceW) / 2 - minC * previewSize;
+            const offsetY = (nextCanvas.height - pieceH) / 2 - minR * previewSize;
+
+            nextCtx.save();
+            nextCtx.translate(offsetX, offsetY);
+            for (let r = 0; r < p.shape.length; r++) {
+                for (let c = 0; c < p.shape[r].length; c++) {
+                    if (p.shape[r][c]) {
+                        drawBlock(nextCtx, c, r, previewSize, p.color, false);
+                    }
+                }
+            }
+            nextCtx.restore();
+        }
+
+        /**
+         * 메인 게임 루프
+         */
+        function gameLoop(timestamp) {
+            if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+
+            if (timestamp - gameState.lastDropTime >= gameState.dropInterval) {
+                moveDown(false);
+                gameState.lastDropTime = timestamp;
+            }
+
+            draw();
+            gameState.animationId = requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * 게임 흐름 제어 (시작, 일시정지, 종료)
+         */
+        function startGame() {
+            sound.init();
+            if (gameState.animationId) cancelAnimationFrame(gameState.animationId);
+
+            gameState.board = createEmptyBoard();
+            gameState.bag = [];
+            gameState.score = 0;
+            gameState.lines = 0;
+            gameState.level = 1;
+            gameState.combo = 0;
+            gameState.maxCombo = 0;
+            gameState.dropInterval = calculateDropInterval(1);
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+            gameState.isGameOver = false;
+            gameState.flashRows = [];
+
+            startOverlay.classList.add('hidden');
+            pauseOverlay.classList.add('hidden');
+            gameoverOverlay.classList.add('hidden');
+            comboBadge.classList.add('hidden');
+
+            gameState.nextPiece = getNextFromBag();
+            spawnNextPiece();
+            updateUI();
+
+            gameState.lastDropTime = performance.now();
+            gameState.animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function togglePause() {
+            if (!gameState.isPlaying || gameState.isGameOver) return;
+
+            gameState.isPaused = !gameState.isPaused;
+            if (gameState.isPaused) {
+                pauseOverlay.classList.remove('hidden');
+                cancelAnimationFrame(gameState.animationId);
+            } else {
+                pauseOverlay.classList.add('hidden');
+                gameState.lastDropTime = performance.now();
+                gameState.animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function endGame() {
+            gameState.isGameOver = true;
+            gameState.isPlaying = false;
+            cancelAnimationFrame(gameState.animationId);
+            sound.gameOver();
+
+            document.getElementById('final-level').textContent = `LV. ${gameState.level}`;
+            document.getElementById('final-score').textContent = gameState.score.toLocaleString();
+            document.getElementById('final-combo').textContent = `${gameState.maxCombo} COMBO`;
+            document.getElementById('final-lines').textContent = gameState.lines;
+
+            gameoverOverlay.classList.remove('hidden');
+        }
+
+        /**
+         * 이벤트 리스너 등록 (키보드, 버튼, 터치)
+         */
+        document.addEventListener('keydown', (e) => {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+
+            if (e.code === 'KeyP') {
+                togglePause();
+                return;
+            }
+
+            if (!gameState.isPlaying || gameState.isPaused || gameState.isGameOver) return;
+
+            switch (e.code) {
+                case 'ArrowLeft':
+                    moveHorizontal(-1);
+                    break;
+                case 'ArrowRight':
+                    moveHorizontal(1);
+                    break;
+                case 'ArrowDown':
+                    moveDown(true);
+                    break;
+                case 'ArrowUp':
+                    rotatePiece();
+                    break;
+                case 'Space':
+                    hardDrop();
+                    break;
+            }
+        });
+
+        // 모달 및 헤더 버튼 이벤트
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('resume-btn').addEventListener('click', togglePause);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+        document.getElementById('header-restart-btn').addEventListener('click', startGame);
+        document.getElementById('pause-toggle-btn').addEventListener('click', togglePause);
+
+        document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+            const isMuted = sound.toggleMute();
+            document.getElementById('sound-icon').textContent = isMuted ? '🔇' : '🔊';
+            document.getElementById('sound-text').textContent = isMuted ? '음소거' : '효과음';
+        });
+
+        // 모바일/마우스 터치 컨트롤 버튼 바인딩 (길게 누르기 연속 입력 지원)
+        function bindControlButton(id, action, repeatable = false) {
+            const btn = document.getElementById(id);
+            let repeatTimer = null;
+            let delayTimer = null;
+
+            const startAction = (e) => {
+                e.preventDefault();
+                btn.classList.add('pressed');
+                action();
+                if (repeatable) {
+                    delayTimer = setTimeout(() => {
+                        repeatTimer = setInterval(action, 75);
+                    }, 220);
+                }
+            };
+
+            const endAction = () => {
+                btn.classList.remove('pressed');
+                clearTimeout(delayTimer);
+                clearInterval(repeatTimer);
+            };
+
+            btn.addEventListener('mousedown', startAction);
+            btn.addEventListener('touchstart', startAction, { passive: false });
+            btn.addEventListener('mouseup', endAction);
+            btn.addEventListener('mouseleave', endAction);
+            btn.addEventListener('touchend', endAction);
+            btn.addEventListener('touchcancel', endAction);
+        }
+
+        bindControlButton('btn-left', () => moveHorizontal(-1), true);
+        bindControlButton('btn-right', () => moveHorizontal(1), true);
+        bindControlButton('btn-down', () => moveDown(true), true);
+        bindControlButton('btn-rotate', () => rotatePiece(), false);
+        bindControlButton('btn-drop', () => hardDrop(), false);
+
+        // 초기 화면 세팅
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = () => {
+            gameState.board = createEmptyBoard();
+            resizeCanvas();
+            draw();
+        };
+    </script>
+</body>
+</html>
